@@ -1,5 +1,4 @@
 ---
-
 - name: Stop k3s-init
   systemd:
     name: k3s-init
@@ -13,7 +12,7 @@
     state: stopped
   failed_when: false
 
-- name: Clean previous runs of k3s-init  # noqa command-instead-of-module
+- name: Clean previous runs of k3s-init # noqa command-instead-of-module
   # The systemd module does not support "reset-failed", so we need to resort to command.
   command: systemctl reset-failed k3s-init
   failed_when: false
@@ -25,6 +24,7 @@
 
 - name: Deploy vip manifest
   include_tasks: vip.yml
+  when: kube_vip_lb_ip_range is defined
 
 - name: Deploy metallb manifest
   include_tasks: metallb.yml
@@ -39,9 +39,9 @@
 - name: Init cluster inside the transient k3s-init service
   command:
     cmd: "systemd-run -p RestartSec=2 \
-                      -p Restart=on-failure \
-                      --unit=k3s-init \
-                      k3s server {{ server_init_args }}"
+      -p Restart=on-failure \
+      --unit=k3s-init \
+      k3s server {{ server_init_args }}"
     creates: "{{ systemd_dir }}/k3s-init.service"
 
 - name: Verification
@@ -51,7 +51,7 @@
       command:
         cmd: k3s kubectl get nodes -l "node-role.kubernetes.io/master=true" -o=jsonpath="{.items[*].metadata.name}"
       register: nodes
-      until: nodes.rc == 0 and (nodes.stdout.split() | length) == (groups[group_name_master | default('master')] | length)  # yamllint disable-line rule:line-length
+      until: nodes.rc == 0 and (nodes.stdout.split() | length) == (groups[group_name_master | default('master')] | length) # yamllint disable-line rule:line-length
       retries: "{{ retry_count | default(20) }}"
       delay: 10
       changed_when: false
